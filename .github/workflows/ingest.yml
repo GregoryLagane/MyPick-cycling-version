@@ -1,11 +1,8 @@
-name: Ingestion PCS
+name: Ingestion FirstCycling
 
-# Quand le script tourne :
-#  - automatiquement, toutes les heures (utile en période de course)
-#  - manuellement, via le bouton "Run workflow" dans l'onglet Actions
 on:
   schedule:
-    - cron: "17 * * * *"   # à la minute 17 de chaque heure
+    - cron: "17 * * * *"   # toutes les heures, à la minute 17
   workflow_dispatch:        # déclenchement manuel
 
 jobs:
@@ -22,7 +19,12 @@ jobs:
 
       - name: Installer les dépendances
         run: |
-          pip install procyclingstats cloudscraper requests
+          pip install requests pandas beautifulsoup4 lxml slumber python-dateutil pytz soupsieve
+
+      - name: Récupérer la librairie FirstCycling
+        run: |
+          git clone --depth 1 https://github.com/baronet2/FirstCyclingAPI.git fca_src
+          cp -r fca_src/first_cycling_api ingestion/first_cycling_api
 
       - name: Lancer l'ingestion
         env:
