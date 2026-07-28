@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.display {
+  font-family: "Archivo Black", sans-serif;
+  letter-spacing: -0.02em;
+}
+.body-f {
+  font-family: "Archivo", sans-serif;
+}
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+body {
+  font-family: "Archivo", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
