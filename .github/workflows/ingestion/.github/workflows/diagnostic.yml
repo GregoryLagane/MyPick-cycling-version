@@ -1,0 +1,19 @@
+name: Diagnostic FirstCycling
+
+on:
+  workflow_dispatch:   # uniquement manuel
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer les dépendances
+        run: pip install requests beautifulsoup4 lxml
+      - name: Lancer le diagnostic
+        run: python ingestion/diagnostic.py
