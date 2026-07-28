@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-MyPick Vélo — ingestion des données depuis ProCyclingStats vers Supabase.
+MyPick Vélo — ingestion des données depuis FirstCycling vers Supabase.
+
+Pourquoi FirstCycling plutôt que ProCyclingStats : PCS bloque les scripts
+avec Cloudflare, ce qui rend l'ingestion peu fiable. FirstCycling n'a pas
+cette barrière et expose les mêmes données (startlists, résultats, général).
 
 Ce script :
   1. lit la table `races` de Supabase pour savoir quelles courses suivre ;
-  2. pour chaque course dont l'URL PCS est renseignée, récupère la startlist
-     et, si disponibles, les résultats (course d'un jour, étapes, général) ;
+  2. pour chaque course dont le `fc_race_id` est renseigné, récupère la
+     startlist et, si disponibles, les résultats ;
   3. écrit tout ça dans Supabase.
 
-Il est CONÇU POUR ÊTRE RELANCÉ SANS DANGER : il ne fait qu'écraser des
-champs de résultat, jamais les pronostics des joueurs. Relancer dix fois
-produit le même état final.
+Il est CONÇU POUR ÊTRE RELANCÉ SANS DANGER : il n'écrase que des champs de
+résultat, jamais les pronostics des joueurs.
 
-La correspondance des courses se fait via la colonne `pcs_url` de la table
-`races` (ajoutée par le fichier SQL 04). Une course sans `pcs_url` est
-ignorée — pratique pour ne suivre que ce qui t'intéresse.
+La correspondance des courses se fait via la colonne `fc_race_id` de la table
+`races` (ajoutée par le fichier SQL 05). Une course sans `fc_race_id` est
+ignorée.
 
 Variables d'environnement attendues (fournies par GitHub Actions) :
   SUPABASE_URL          — l'URL du projet (même valeur que dans l'app)
@@ -24,57 +27,65 @@ Variables d'environnement attendues (fournies par GitHub Actions) :
 import os
 import sys
 import time
-import unicodedata
+
+# La librairie first_cycling_api est copiée à côté de ce script par le
+# workflow (elle n'est pas publiée sur PyPI). On l'ajoute au chemin Python.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # ---------------------------------------------------------------------------
-# Conversion des noms PCS -> format lisible
-# PCS renvoie "POGAČAR Tadej" ; on veut "Tadej Pogačar".
+# Conversion des noms FirstCycling -> format lisible
+# FirstCycling renvoie "Pogacar Tadej" (nom puis prénom, particules en
+# minuscules) ; on veut "Tadej Pogacar". Le prénom est toujours le DERNIER mot.
+# Note : FirstCycling retire les accents (Pogacar, pas Pogačar). Comme la
+# startlist ET les résultats viennent de la même source, les noms restent
+# cohérents entre eux et le calcul des points fonctionne.
 # ---------------------------------------------------------------------------
 
-PARTICULES = {"van", "der", "den", "de", "del", "di", "da", "le", "la",
-              "von", "ten", "ter", "af", "av", "dos", "das", "el", "y"}
-
-def _recap(word):
-    """Capitalise en gérant apostrophes et tirets : O'CONNOR -> O'Connor."""
-    for sep in ("'", "-"):
-        if sep in word:
-            return sep.join(_recap(p) for p in word.split(sep))
-    return word.capitalize()
-
-def pcs_to_name(pcs_name):
-    """POGAČAR Tadej -> Tadej Pogačar. Particules en minuscules."""
-    if not pcs_name or not pcs_name.strip():
+def fc_to_name(fc_name):
+    if not fc_name or not str(fc_name).strip():
         return None
-    parts = pcs_name.strip().split()
-    surname, given = [], []
-    for p in parts:
-        letters = [c for c in p if c.isalpha()]
-        if letters and all(c.isupper() for c in letters):
-            surname.append(p)
-        else:
-            given.append(p)
-    if not surname or not given:
-        return pcs_name.strip()  # cas ambigu, laissé tel quel
-    words = []
-    for w in surname:
-        low = w.lower()
-        words.append(low if low in PARTICULES else _recap(w))
-    return f"{' '.join(given)} {' '.join(words)}"
+    parts = str(fc_name).strip().split()
+    if len(parts) == 1:
+        return parts[0]
+    given = parts[-1]
+    surname = parts[:-1]
+    return f"{given} {' '.join(surname)}"
 
 
 # ---------------------------------------------------------------------------
-# Accès PCS via la librairie procyclingstats
+# Accès FirstCycling via la librairie first_cycling_api
 # ---------------------------------------------------------------------------
 
-def get_startlist(pcs_url):
-    """Renvoie la liste des coureurs au départ, format base."""
-    from procyclingstats import RaceStartlist
-    sl = RaceStartlist(f"{pcs_url}/startlist")
+def _riders_from_table(df, top_n=None):
+    """Extrait la colonne Rider d'un DataFrame de résultats, format base."""
+    if df is None or "Rider" not in df.columns:
+        return []
+    names = []
+    rows = df["Rider"].tolist()
+    if top_n:
+        rows = rows[:top_n]
+    for raw in rows:
+        n = fc_to_name(raw)
+        if n:
+            names.append(n)
+    return names
+
+
+def get_startlist(race_id, year):
+    """Liste des coureurs au départ, format base."""
+    from first_cycling_api import RaceEdition
+    edition = RaceEdition(race_id, year)
+    sl = edition.startlist()
+    # la startlist expose un tableau ; selon les versions l'attribut varie
+    df = getattr(sl, "startlist_table", None)
+    if df is None:
+        df = getattr(sl, "table", None)
     riders = []
-    for row in sl.startlist():
-        name = pcs_to_name(row.get("rider_name"))
-        if name:
-            riders.append(name)
+    if df is not None and "Rider" in df.columns:
+        for raw in df["Rider"].tolist():
+            n = fc_to_name(raw)
+            if n:
+                riders.append(n)
     # dédoublonne en gardant l'ordre
     seen, out = set(), []
     for r in riders:
@@ -83,61 +94,37 @@ def get_startlist(pcs_url):
     return out
 
 
-def get_stage_result(pcs_url, stage_n, top_n=10):
-    """Renvoie le top N d'une étape, format base. Liste vide si pas encore couru."""
-    from procyclingstats import Stage
+def get_oneday_result(race_id, year, top_n=10):
+    from first_cycling_api import RaceEdition
+    edition = RaceEdition(race_id, year)
+    res = edition.results()
+    return _riders_from_table(getattr(res, "results_table", None), top_n)
+
+
+def get_stage_result(race_id, year, stage_n, top_n=10):
+    from first_cycling_api import RaceEdition
     try:
-        st = Stage(f"{pcs_url}/stage-{stage_n}")
-        rows = st.results()
+        edition = RaceEdition(race_id, year)
+        res = edition.results(stage_num=stage_n)
+        return _riders_from_table(getattr(res, "results_table", None), top_n)
     except Exception as e:
         print(f"      étape {stage_n} : pas de résultat ({type(e).__name__})")
         return []
-    return _extract_top(rows, top_n)
 
 
-def get_oneday_result(pcs_url, top_n=10):
-    """Renvoie le top N d'une course d'un jour."""
-    from procyclingstats import Stage
+def get_gc_result(race_id, year, top_n=10):
+    """Classement général final (classification 1 = GC)."""
+    from first_cycling_api import RaceEdition
     try:
-        st = Stage(f"{pcs_url}/result")
-        rows = st.results()
+        edition = RaceEdition(race_id, year)
+        res = edition.results(classification_num=1)
+        return _riders_from_table(getattr(res, "results_table", None), top_n)
     except Exception:
-        try:
-            st = Stage(pcs_url)
-            rows = st.results()
-        except Exception as e:
-            print(f"      pas de résultat ({type(e).__name__})")
-            return []
-    return _extract_top(rows, top_n)
-
-
-def get_gc_result(pcs_url, last_stage, top_n=10):
-    """Renvoie le top N du classement général final."""
-    from procyclingstats import Stage
-    for suffix in (f"/gc", f"/stage-{last_stage}/gc"):
-        try:
-            st = Stage(f"{pcs_url}{suffix}")
-            rows = st.results()
-            top = _extract_top(rows, top_n)
-            if top:
-                return top
-        except Exception:
-            continue
-    return []
-
-
-def _extract_top(rows, top_n):
-    """Extrait les N premiers noms d'une table de résultats PCS."""
-    out = []
-    for row in rows[:top_n]:
-        name = pcs_to_name(row.get("rider_name"))
-        if name:
-            out.append(name)
-    return out
+        return []
 
 
 # ---------------------------------------------------------------------------
-# Accès Supabase via l'API REST (pas de dépendance lourde)
+# Accès Supabase via l'API REST
 # ---------------------------------------------------------------------------
 
 class Supabase:
@@ -154,7 +141,7 @@ class Supabase:
         r = requests.get(
             f"{self.url}/rest/v1/races",
             headers=self.headers,
-            params={"select": "*", "pcs_url": "not.is.null"},
+            params={"select": "*", "fc_race_id": "not.is.null"},
             timeout=30,
         )
         r.raise_for_status()
@@ -198,6 +185,8 @@ class Supabase:
 # Programme principal
 # ---------------------------------------------------------------------------
 
+YEAR = 2026
+
 def main():
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -207,57 +196,56 @@ def main():
 
     db = Supabase(url, key)
     races = db.get_races()
-    print(f"{len(races)} course(s) avec une URL PCS à suivre.\n")
+    print(f"{len(races)} course(s) avec un ID FirstCycling à suivre.\n")
 
     for race in races:
         rid = race["id"]
-        pcs = race["pcs_url"].strip().rstrip("/")
-        print(f"=== {race['name']} ({rid}) ===")
-        print(f"    PCS: {pcs}")
+        fc_id = race["fc_race_id"]
+        print(f"=== {race['name']} ({rid}) — FirstCycling id {fc_id} ===")
 
-        # 1) Startlist — seulement si absente ou vide, pour ne pas réécrire
-        #    en boucle une liste que l'admin aurait ajustée à la main.
+        # 1) Startlist, seulement si absente
         current_sl = race.get("startlist") or []
         if len(current_sl) == 0:
             try:
-                sl = get_startlist(pcs)
+                sl = get_startlist(fc_id, YEAR)
                 if sl:
                     db.update_race(rid, {"startlist": sl})
                     print(f"    startlist : {len(sl)} coureurs ajoutés")
                 else:
-                    print("    startlist : vide côté PCS (pas encore publiée ?)")
+                    print("    startlist : vide (pas encore publiée ?)")
             except Exception as e:
                 print(f"    startlist : échec ({type(e).__name__}: {e})")
         else:
             print(f"    startlist : déjà {len(current_sl)} coureurs, on ne touche pas")
 
-        time.sleep(2)  # courtoisie envers PCS
+        time.sleep(2)
 
         # 2) Résultats
         if race["format"] == "oneday":
             if not race.get("result"):
-                res = get_oneday_result(pcs)
-                if res:
-                    db.update_race(rid, {"result": res})
-                    print(f"    résultat : top {len(res)} enregistré")
-                else:
-                    print("    résultat : pas encore disponible")
+                try:
+                    res = get_oneday_result(fc_id, YEAR)
+                    if res:
+                        db.update_race(rid, {"result": res})
+                        print(f"    résultat : top {len(res)} enregistré")
+                    else:
+                        print("    résultat : pas encore disponible")
+                except Exception as e:
+                    print(f"    résultat : échec ({type(e).__name__}: {e})")
             else:
                 print("    résultat : déjà présent")
         else:
             stages = db.get_stages(rid)
-            last_n = max((s["n"] for s in stages), default=0)
             for s in stages:
                 if s.get("result"):
-                    continue  # déjà rempli
-                res = get_stage_result(pcs, s["n"])
+                    continue
+                res = get_stage_result(fc_id, YEAR, s["n"])
                 if res:
                     db.update_stage(rid, s["n"], {"result": res})
                     print(f"    étape {s['n']} : top {len(res)} enregistré")
                 time.sleep(2)
-            # Classement général, une fois la dernière étape courue
             if not race.get("gc_result"):
-                gc = get_gc_result(pcs, last_n)
+                gc = get_gc_result(fc_id, YEAR)
                 if gc:
                     db.update_race(rid, {"gc_result": gc})
                     print(f"    général : top {len(gc)} enregistré")
