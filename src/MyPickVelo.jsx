@@ -91,13 +91,13 @@ function Shell({ children }) {
   );
 }
 
-function Logo({ size = "text-5xl" }) {
+function Logo({ size = 120 }) {
   return (
-    <div className="text-center mb-8">
-      <div className="mono text-[11px] uppercase tracking-[0.25em] text-lime-400 mb-1">
-        UCI World Tour
+    <div className="flex flex-col items-center mb-8">
+      <LogoMark size={size} />
+      <div className="mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mt-3">
+        cycling version
       </div>
-      <div className={`display ${size}`}>MyPick</div>
     </div>
   );
 }
@@ -391,13 +391,14 @@ function Game({ session, profile }) {
       <header className="bg-stone-900 text-stone-50">
         <div className="max-w-4xl mx-auto px-5 pt-6 pb-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <LogoMark size={64} />
-              <div>
-                <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
-                  Saison 2026 · UCI World Tour
-                </div>
-                <h1 className="display text-4xl sm:text-5xl">MyPick</h1>
+            <div>
+              <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
+                Saison 2026 · UCI World Tour
+              </div>
+              <h1 className="display text-4xl sm:text-5xl leading-none">MyPick</h1>
+              <div className="mono text-[10px] uppercase tracking-[0.3em] text-lime-400 mt-1 mb-1">
+                cycling version
+              </div>
               <div className="mono text-[11px] text-stone-400 mt-1">
                 {profile.pseudo}
                 {profile.is_admin && <span className="text-lime-400 ml-2">· admin</span>}
@@ -407,7 +408,6 @@ function Game({ session, profile }) {
                 >
                   déconnexion
                 </button>
-                </div>
               </div>
             </div>
             <div className="text-right">
