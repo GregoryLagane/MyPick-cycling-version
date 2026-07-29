@@ -22,9 +22,9 @@ const TABS = [
 ];
 
 // Écusson MyPick Vélo (SVG inline, taille réglable)
-function LogoMark({ size = 56 }) {
+function LogoMark({ size = 56, className = "" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cycling Version">
+    <svg width={size} height={size} className={className} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cycling Version" style={{ display: "block" }}>
       <defs>
         <path id="mpBotArc" d="M 52,100 A 48,48 0 0 0 148,100" />
       </defs>
@@ -90,7 +90,7 @@ function Shell({ children }) {
 function Logo({ size = 120 }) {
   return (
     <div className="flex flex-col items-center mb-8">
-      <LogoMark size={size} />
+      <LogoMark size={120} className="w-24 h-24 sm:w-[120px] sm:h-[120px]" />
       <div className="mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mt-3">
         cycling version
       </div>
@@ -385,15 +385,15 @@ function Game({ session, profile }) {
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
       <header className="bg-stone-900 text-stone-50">
-        <div className="max-w-4xl mx-auto px-5 pt-6 pb-5">
+        <div className="max-w-4xl mx-auto px-4 sm:px-5 pt-4 sm:pt-6 pb-4 sm:pb-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <LogoMark size={72} />
+              <LogoMark size={72} className="w-14 h-14 sm:w-[72px] sm:h-[72px] shrink-0" />
               <div>
               <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
                 Saison 2026 · UCI World Tour
               </div>
-              <h1 className="display text-4xl sm:text-5xl leading-none">MyPick</h1>
+              <h1 className="display text-3xl sm:text-5xl leading-none">MyPick</h1>
               <div className="mono text-[10px] uppercase tracking-[0.3em] text-lime-400 mt-1 mb-1">
                 cycling version
               </div>
@@ -411,7 +411,7 @@ function Game({ session, profile }) {
             </div>
             <div className="text-right">
               <div className="mono text-[11px] uppercase tracking-[0.15em] text-stone-400">Total saison</div>
-              <div className="display text-5xl text-lime-400 leading-none">{totals.season}</div>
+              <div className="display text-4xl sm:text-5xl text-lime-400 leading-none">{totals.season}</div>
               <div className="mono text-[11px] text-stone-400 mt-1">
                 {myRank > 0 ? `${myRank}${myRank === 1 ? "er" : "e"} sur ${board.length}` : "—"}
               </div>
@@ -420,12 +420,12 @@ function Game({ session, profile }) {
         </div>
 
         <div className="border-t border-stone-700">
-          <div className="max-w-4xl mx-auto px-5 flex overflow-x-auto">
+          <div className="max-w-4xl mx-auto px-3 sm:px-5 flex overflow-x-auto">
             {[...TABS, ...(profile.is_admin ? [{ id: "admin", label: "Admin" }] : [])].map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`mono text-[11px] uppercase tracking-[0.15em] px-4 py-3 border-b-2 whitespace-nowrap transition-colors ${
+                className={`mono text-[10px] sm:text-[11px] uppercase tracking-[0.1em] sm:tracking-[0.15em] px-3 sm:px-4 py-3 border-b-2 whitespace-nowrap transition-colors ${
                   tab === t.id ? "border-lime-400 text-lime-400"
                                : "border-transparent text-stone-400 hover:text-stone-200"
                 }`}
@@ -437,7 +437,7 @@ function Game({ session, profile }) {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-5 py-8 body-f">
+      <main className="max-w-4xl mx-auto px-4 sm:px-5 py-6 sm:py-8 body-f">
         {tab === "courses" && (
           <TabCourses
             races={races} myPicks={myPicks} scores={scores} now={now}
@@ -878,7 +878,7 @@ function RaceDetail({ race, myPicks, score, now, profiles, picksByUser, meId, on
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-5 py-8 body-f space-y-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-5 py-6 sm:py-8 body-f space-y-8">
         <section>
           <SectionTitle>Classement final</SectionTitle>
           <div className="grid sm:grid-cols-2 gap-3">
