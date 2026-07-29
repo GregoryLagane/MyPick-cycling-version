@@ -1,0 +1,17 @@
+{
+  "name": "MyPick Cycling Version",
+  "short_name": "MyPick",
+  "description": "Jeu de pronostics cyclisme UCI World Tour",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1917",
+  "theme_color": "#1c1917",
+  "icons": [
+    {
+      "src": "/icone-app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
