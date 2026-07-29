@@ -391,7 +391,9 @@ function Game({ session, profile }) {
       <header className="bg-stone-900 text-stone-50">
         <div className="max-w-4xl mx-auto px-5 pt-6 pb-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
+            <div className="flex items-center gap-4">
+              <LogoMark size={72} />
+              <div>
               <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
                 Saison 2026 · UCI World Tour
               </div>
@@ -408,6 +410,7 @@ function Game({ session, profile }) {
                 >
                   déconnexion
                 </button>
+              </div>
               </div>
             </div>
             <div className="text-right">
