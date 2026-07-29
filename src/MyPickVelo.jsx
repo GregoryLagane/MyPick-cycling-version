@@ -24,28 +24,24 @@ const TABS = [
 // Écusson MyPick Vélo (SVG inline, taille réglable)
 function LogoMark({ size = 56 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cyclisme">
+    <svg width={size} height={size} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cycling Version">
       <defs>
-        <path id="mpTopArc" d="M 42,98 A 58,58 0 0 1 158,98" />
-        <path id="mpBotArc" d="M 48,100 A 52,52 0 0 0 152,100" />
+        <path id="mpBotArc" d="M 52,100 A 48,48 0 0 0 148,100" />
       </defs>
       <circle cx="100" cy="100" r="70" fill="none" stroke="#a3e635" strokeWidth="5" />
       <circle cx="100" cy="100" r="60" fill="none" stroke="#44403c" strokeWidth="1.5" />
-      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="12" letterSpacing="2.5" fill="#fafaf9">
-        <textPath href="#mpTopArc" startOffset="50%" textAnchor="middle">MYPICK</textPath>
-      </text>
-      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="7.5" letterSpacing="2" fill="#a3e635">
-        <textPath href="#mpBotArc" startOffset="50%" textAnchor="middle">CYCLING VERSION</textPath>
-      </text>
       <circle cx="42" cy="100" r="2.5" fill="#a3e635" />
       <circle cx="158" cy="100" r="2.5" fill="#a3e635" />
-      <g transform="translate(100,96)" stroke="#fafaf9" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="-26" cy="9" r="14" />
-        <circle cx="26" cy="9" r="14" />
-        <path d="M-26,9 L-9,-13 L17,-13 M-9,-13 L9,9 L26,9 M-26,9 L9,9" />
-        <path d="M17,-13 L24,-13 M-9,-13 L-13,-17" />
-        <circle cx="-9" cy="9" r="2.6" fill="#a3e635" stroke="none" />
+      <text x="100" y="70" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="15" letterSpacing="1.5" fill="#fafaf9">MYPICK</text>
+      <g transform="translate(100,100)" stroke="#fafaf9" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="-25" cy="9" r="13" />
+        <circle cx="25" cy="9" r="13" />
+        <path d="M-25,9 L-8,-13 L15,-13 M-8,-13 L8,9 L25,9 M-25,9 L8,9" />
+        <path d="M15,-13 L21,-13 M-8,-13 L-12,-17" />
       </g>
+      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="7" letterSpacing="1.5" fill="#a3e635">
+        <textPath href="#mpBotArc" startOffset="50%" textAnchor="middle">CYCLING VERSION</textPath>
+      </text>
     </svg>
   );
 }
