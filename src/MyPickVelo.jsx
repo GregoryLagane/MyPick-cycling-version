@@ -738,12 +738,15 @@ function TabClassement({ board, races, meId, picksByUser, profiles, now }) {
 
   const best = rows.length ? rows[0].total : 0;
 
-  if (played.length === 0) {
-    return <Empty>Le classement démarrera après la première course.</Empty>;
-  }
+  const aucuneCourseJouee = played.length === 0;
 
   return (
     <div className="space-y-6">
+      {aucuneCourseJouee && (
+        <div className="mono text-[11px] uppercase tracking-wider text-stone-500 bg-stone-100 border border-stone-200 px-4 py-3">
+          Aucune course terminée pour l'instant — tout le monde est à 0. Le classement s'animera dès les premiers résultats.
+        </div>
+      )}
       <div>
         <label className="mono text-[10px] uppercase tracking-wider text-stone-500 block mb-1.5">
           Filtrer
