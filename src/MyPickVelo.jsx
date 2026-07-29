@@ -21,6 +21,35 @@ const TABS = [
   { id: "classement", label: "Classement" },
 ];
 
+// Écusson MyPick Vélo (SVG inline, taille réglable)
+function LogoMark({ size = 56 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cyclisme">
+      <defs>
+        <path id="mpTopArc" d="M 40,100 A 60,60 0 0 1 160,100" />
+        <path id="mpBotArc" d="M 44,100 A 56,56 0 0 0 156,100" />
+      </defs>
+      <circle cx="100" cy="100" r="70" fill="none" stroke="#a3e635" strokeWidth="5" />
+      <circle cx="100" cy="100" r="60" fill="none" stroke="#44403c" strokeWidth="1.5" />
+      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="14" letterSpacing="4" fill="#fafaf9">
+        <textPath href="#mpTopArc" startOffset="50%" textAnchor="middle">MYPICK</textPath>
+      </text>
+      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="11" letterSpacing="6" fill="#a3e635">
+        <textPath href="#mpBotArc" startOffset="50%" textAnchor="middle">CYCLISME</textPath>
+      </text>
+      <circle cx="42" cy="100" r="2.5" fill="#a3e635" />
+      <circle cx="158" cy="100" r="2.5" fill="#a3e635" />
+      <g transform="translate(100,96)" stroke="#fafaf9" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="-26" cy="9" r="14" />
+        <circle cx="26" cy="9" r="14" />
+        <path d="M-26,9 L-9,-13 L17,-13 M-9,-13 L9,9 L26,9 M-26,9 L9,9" />
+        <path d="M17,-13 L24,-13 M-9,-13 L-13,-17" />
+        <circle cx="-9" cy="9" r="2.6" fill="#a3e635" stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
 export default function MyPickVelo() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -362,11 +391,13 @@ function Game({ session, profile }) {
       <header className="bg-stone-900 text-stone-50">
         <div className="max-w-4xl mx-auto px-5 pt-6 pb-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
-                Saison 2026 · UCI World Tour
-              </div>
-              <h1 className="display text-4xl sm:text-5xl">MyPick</h1>
+            <div className="flex items-center gap-4">
+              <LogoMark size={64} />
+              <div>
+                <div className="mono text-[11px] uppercase tracking-[0.2em] text-lime-400 mb-1">
+                  Saison 2026 · UCI World Tour
+                </div>
+                <h1 className="display text-4xl sm:text-5xl">MyPick</h1>
               <div className="mono text-[11px] text-stone-400 mt-1">
                 {profile.pseudo}
                 {profile.is_admin && <span className="text-lime-400 ml-2">· admin</span>}
@@ -376,6 +407,7 @@ function Game({ session, profile }) {
                 >
                   déconnexion
                 </button>
+                </div>
               </div>
             </div>
             <div className="text-right">
