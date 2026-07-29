@@ -26,16 +26,16 @@ function LogoMark({ size = 56 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="MyPick Cyclisme">
       <defs>
-        <path id="mpTopArc" d="M 40,100 A 60,60 0 0 1 160,100" />
-        <path id="mpBotArc" d="M 44,100 A 56,56 0 0 0 156,100" />
+        <path id="mpTopArc" d="M 42,98 A 58,58 0 0 1 158,98" />
+        <path id="mpBotArc" d="M 48,100 A 52,52 0 0 0 152,100" />
       </defs>
       <circle cx="100" cy="100" r="70" fill="none" stroke="#a3e635" strokeWidth="5" />
       <circle cx="100" cy="100" r="60" fill="none" stroke="#44403c" strokeWidth="1.5" />
-      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="14" letterSpacing="4" fill="#fafaf9">
+      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="12" letterSpacing="2.5" fill="#fafaf9">
         <textPath href="#mpTopArc" startOffset="50%" textAnchor="middle">MYPICK</textPath>
       </text>
-      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="11" letterSpacing="6" fill="#a3e635">
-        <textPath href="#mpBotArc" startOffset="50%" textAnchor="middle">CYCLISME</textPath>
+      <text fontFamily="'JetBrains Mono', monospace" fontWeight="700" fontSize="7.5" letterSpacing="2" fill="#a3e635">
+        <textPath href="#mpBotArc" startOffset="50%" textAnchor="middle">CYCLING VERSION</textPath>
       </text>
       <circle cx="42" cy="100" r="2.5" fill="#a3e635" />
       <circle cx="158" cy="100" r="2.5" fill="#a3e635" />
