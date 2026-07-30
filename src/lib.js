@@ -3,7 +3,7 @@
    Fonctions pures, sans dépendance React : testables et réutilisables.
    ========================================================================= */
 
-export const COEFF = { grand_tour: 3, monument: 2, worldtour: 1 };
+export const COEFF = { grand_tour: 3, monument: 2, championship: 2, worldtour: 1 };
 
 // Barème général (podium final / course d'un jour)
 export const S_GC = { winner: 20, exactPlace: 10, wrongPlace: 5, outsiderTop5: 15 };
@@ -17,11 +17,12 @@ export const S_JERSEY = { points: 10, kom: 10 };
    classement général (225 pts au maximum). Seules les N meilleures étapes
    comptent : le jeu récompense la justesse, pas le simple fait de tout saisir.
    Un joueur qui rate quelques étapes n'est pas éliminé pour autant. */
-export const STAGE_CAP = { grand_tour: 12, worldtour: 6, monument: 0 };
+export const STAGE_CAP = { grand_tour: 12, worldtour: 6, monument: 0, championship: 0 };
 
 export const TYPE_LABEL = {
   grand_tour: "Grand Tour",
   monument: "Monument",
+  championship: "Championnat",
   worldtour: "World Tour",
 };
 
