@@ -468,8 +468,17 @@ function Game({ session, profile }) {
    ======================================================================== */
 
 function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick }) {
-  const upcoming = races.filter((r) => !(r.result || r.gcResult));
+  const notFinished = races.filter((r) => !(r.result || r.gcResult));
   const finished = races.filter((r) => r.result || r.gcResult);
+  // Courses ouvertes (départ à venir) d'abord, triées par date la plus proche ;
+  // puis les verrouillées (départ passé, pas encore de résultat).
+  const open = notFinished
+    .filter((r) => new Date(r.startsAt).getTime() > now)
+    .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  const lockedPending = notFinished
+    .filter((r) => new Date(r.startsAt).getTime() <= now)
+    .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  const upcoming = [...open, ...lockedPending];
 
   return (
     <div className="space-y-10">
@@ -526,6 +535,8 @@ function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick }) {
   const rp = myPicks[race.id];
   const locked = isLocked(race.startsAt, now);
   const played = race.result || race.gcResult;
+  const msLeft = new Date(race.startsAt).getTime() - now;
+  const soon = !locked && !played && msLeft > 0 && msLeft < 3 * 24 * 60 * 60 * 1000;
 
   let subInfo = null;
   if (race.format === "stage") {
@@ -535,12 +546,17 @@ function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick }) {
   }
 
   return (
-    <div className="bg-white border border-stone-300 p-5">
+    <div className={`p-5 border ${soon ? "border-lime-400 border-2 bg-lime-50" : "bg-white border-stone-300"}`}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-[220px]">
           <div className="flex items-center gap-2 mb-1">
             <span>{FLAG[race.country] || "🏁"}</span>
             <RaceBadge race={race} muted={Boolean(played)} />
+            {soon && (
+              <span className="mono text-[9px] uppercase tracking-wider bg-lime-400 text-stone-900 px-1.5 py-0.5 font-bold">
+                Bientôt
+              </span>
+            )}
             {race.format === "stage" && (
               <span className="mono text-[10px] uppercase tracking-wider text-stone-400">
                 Course à étapes
