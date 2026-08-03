@@ -442,6 +442,7 @@ function Game({ session, profile }) {
           <TabCourses
             races={races} myPicks={myPicks} scores={scores} now={now}
             onOpenRace={setView} onPick={openPick}
+            profiles={profiles} picksByUser={picksByUser} meId={session.user.id}
           />
         )}
         {tab === "points" && (
@@ -467,7 +468,7 @@ function Game({ session, profile }) {
    ONGLET 1 — COURSES
    ======================================================================== */
 
-function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick }) {
+function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick, profiles, picksByUser, meId }) {
   const notFinished = races.filter((r) => !(r.result || r.gcResult));
   const finished = races.filter((r) => r.result || r.gcResult);
   // Courses ouvertes (départ à venir) d'abord, triées par date la plus proche ;
@@ -489,7 +490,8 @@ function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick }) {
             ? <Empty>Aucune course à venir dans le calendrier.</Empty>
             : upcoming.map((race) => (
                 <RaceRow key={race.id} race={race} myPicks={myPicks} scores={scores}
-                  now={now} onOpenRace={onOpenRace} onPick={onPick} />
+                  now={now} onOpenRace={onOpenRace} onPick={onPick}
+                  profiles={profiles} picksByUser={picksByUser} meId={meId} />
               ))}
         </div>
       </section>
@@ -501,7 +503,8 @@ function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick }) {
             ? <Empty>Les résultats apparaîtront après la première course.</Empty>
             : finished.map((race) => (
                 <RaceRow key={race.id} race={race} myPicks={myPicks} scores={scores}
-                  now={now} onOpenRace={onOpenRace} onPick={onPick} />
+                  now={now} onOpenRace={onOpenRace} onPick={onPick}
+                  profiles={profiles} picksByUser={picksByUser} meId={meId} />
               ))}
         </div>
       </section>
@@ -530,7 +533,7 @@ function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick }) {
   );
 }
 
-function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick }) {
+function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick, profiles, picksByUser, meId }) {
   const s = scores[race.id];
   const rp = myPicks[race.id];
   const locked = isLocked(race.startsAt, now);
@@ -615,6 +618,44 @@ function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick }) {
           picked={rp?.oneday ? [...rp.oneday.podium, rp.oneday.outsider].filter(Boolean) : []}
         />
       )}
+
+      {race.format === "oneday" && locked && profiles && picksByUser && (
+        <PlayersPicks race={race} profiles={profiles} picksByUser={picksByUser} meId={meId} />
+      )}
+    </div>
+  );
+}
+
+/* Pronostics de chaque joueur pour une course d'un jour, visibles une fois fermée */
+function PlayersPicks({ race, profiles, picksByUser, meId }) {
+  const rows = profiles
+    .map((p) => ({ p, pick: picksByUser[p.id]?.[race.id]?.oneday }))
+    .filter((r) => r.pick);
+
+  if (rows.length === 0) {
+    return (
+      <div className="border-t border-stone-200 px-5 py-3 mono text-[11px] text-stone-400">
+        Aucun joueur n'a pronostiqué cette course.
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-stone-200">
+      <div className="px-5 pt-3 pb-1 mono text-[10px] uppercase tracking-wider text-stone-500">
+        Pronostics des joueurs
+      </div>
+      <div className="divide-y divide-stone-100">
+        {rows.map(({ p, pick }) => (
+          <div key={p.id} className={`px-5 py-2.5 flex items-baseline gap-3 flex-wrap ${p.id === meId ? "bg-lime-50" : ""}`}>
+            <span className="display text-sm w-24 truncate shrink-0">{p.pseudo}</span>
+            <span className="mono text-xs text-stone-600 flex-1 min-w-[180px]">
+              {pick.podium.map((r, i) => `${i + 1}. ${r}`).join("  ·  ")}
+              {pick.outsider && `  ·  ★ ${pick.outsider}`}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -941,6 +982,13 @@ function RaceDetail({ race, myPicks, score, now, profiles, picksByUser, meId, on
           </section>
         )}
 
+        {gcLocked && profiles && picksByUser && (
+          <section>
+            <SectionTitle>Pronostics des joueurs · général</SectionTitle>
+            <GcPlayersPicks race={race} profiles={profiles} picksByUser={picksByUser} meId={meId} />
+          </section>
+        )}
+
         <section>
           <SectionTitle>Étapes · {S_STAGE.winner} / {S_STAGE.exactPlace} / {S_STAGE.exactPlace} pts</SectionTitle>
           <div className="grid gap-2">
@@ -990,6 +1038,42 @@ function RaceDetail({ race, myPicks, score, now, profiles, picksByUser, meId, on
       </main>
 
       <PickModal {...modalProps} />
+    </div>
+  );
+}
+
+/* Pronostics général + maillots de chaque joueur, visibles à la fin de la course */
+function GcPlayersPicks({ race, profiles, picksByUser, meId }) {
+  const rows = profiles
+    .map((p) => ({ p, gc: picksByUser[p.id]?.[race.id]?.gc, jerseys: picksByUser[p.id]?.[race.id]?.jerseys }))
+    .filter((r) => r.gc || r.jerseys);
+
+  if (rows.length === 0) {
+    return (
+      <div className="bg-white border border-stone-300 px-5 py-3 mono text-[11px] text-stone-400">
+        Aucun joueur n'a pronostiqué le général.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-stone-300 divide-y divide-stone-100">
+      {rows.map(({ p, gc, jerseys }) => (
+        <div key={p.id} className={`px-5 py-3 ${p.id === meId ? "bg-lime-50" : ""}`}>
+          <div className="display text-sm mb-1">{p.pseudo}</div>
+          {gc && (
+            <div className="mono text-xs text-stone-600">
+              {gc.podium.map((r, i) => `${i + 1}. ${r}`).join("  ·  ")}
+              {gc.outsider && `  ·  ★ ${gc.outsider}`}
+            </div>
+          )}
+          {jerseys && (jerseys.points || jerseys.kom) && (
+            <div className="mono text-[11px] text-stone-400 mt-0.5">
+              Points : {jerseys.points || "—"} · Montagne : {jerseys.kom || "—"}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
