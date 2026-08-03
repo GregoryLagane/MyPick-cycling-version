@@ -97,11 +97,23 @@ export function PickCard({ title, hint, value, locked, lockLabel, onEdit }) {
 
 export function SelectField({ label, hint, value, options, favorites, disabledSet, selfValue, onChange, emptyLabel }) {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const q = query.trim().toLowerCase();
-  // Filtrer les options selon la recherche ; garder toujours l'option déjà choisie visible.
-  const filtered = q
-    ? options.filter((r) => r.toLowerCase().includes(q) || r === value)
-    : options;
+
+  const isDisabled = (r) => disabledSet ? disabledSet.includes(r) && selfValue !== r : false;
+
+  // Suggestions filtrées (max 8 affichées pour rester lisible)
+  const suggestions = (q
+    ? options.filter((r) => r.toLowerCase().includes(q))
+    : options
+  ).slice(0, 8);
+
+  function choose(r) {
+    if (isDisabled(r)) return;
+    onChange(r);
+    setQuery("");
+    setOpen(false);
+  }
 
   return (
     <div>
@@ -109,33 +121,59 @@ export function SelectField({ label, hint, value, options, favorites, disabledSe
         {label}
         {hint && <span className="text-stone-400 ml-2">{hint}</span>}
       </label>
-      {options.length > 8 && (
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un coureur…"
-          className="w-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm mb-1.5 focus:outline-none focus:border-stone-900"
-        />
-      )}
-      <select
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-stone-400 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-stone-900"
-      >
-        <option value="">{emptyLabel || "Choisir un coureur"}</option>
-        {filtered.map((r) => (
-          <option
-            key={r}
-            value={r}
-            disabled={disabledSet ? disabledSet.includes(r) && selfValue !== r : false}
+
+      {/* Coureur déjà choisi : on l'affiche avec un bouton pour changer */}
+      {value ? (
+        <div className="flex items-center gap-2 border border-stone-400 bg-white px-3 py-2.5">
+          <span className="text-sm flex-1 truncate">
+            {value}{favorites?.includes(value) ? " ★" : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => { onChange(""); setQuery(""); setOpen(true); }}
+            className="mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-900 shrink-0"
           >
-            {r}{favorites?.includes(r) ? " ★" : ""}
-          </option>
-        ))}
-      </select>
-      {q && filtered.length === 0 && (
-        <div className="mono text-[10px] text-stone-400 mt-1">Aucun coureur trouvé pour « {query} »</div>
+            Changer
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder={emptyLabel || "Tape le nom d'un coureur…"}
+            className="w-full border border-stone-400 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-stone-900"
+          />
+          {open && suggestions.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-stone-400 max-h-64 overflow-y-auto shadow-lg">
+              {suggestions.map((r) => {
+                const dis = isDisabled(r);
+                return (
+                  <button
+                    type="button"
+                    key={r}
+                    disabled={dis}
+                    onMouseDown={(e) => { e.preventDefault(); choose(r); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm border-b border-stone-100 last:border-0 ${
+                      dis ? "text-stone-300 cursor-not-allowed" : "hover:bg-lime-50"
+                    }`}
+                  >
+                    {r}{favorites?.includes(r) ? " ★" : ""}
+                    {dis && <span className="mono text-[9px] uppercase text-stone-400 ml-2">déjà choisi</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {open && q && suggestions.length === 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-stone-400 px-3 py-2.5 mono text-[11px] text-stone-400">
+              Aucun coureur trouvé pour « {query} »
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
