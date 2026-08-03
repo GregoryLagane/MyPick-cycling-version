@@ -1,6 +1,7 @@
 /* ============================================================================
    MyPick Vélo — composants d'interface réutilisables
    ========================================================================= */
+import { useState } from "react";
 import { COEFF, TYPE_LABEL, FLAG, S_GC, S_STAGE, S_JERSEY, ord } from "./lib.js";
 
 export function SectionTitle({ children, right }) {
@@ -95,19 +96,35 @@ export function PickCard({ title, hint, value, locked, lockLabel, onEdit }) {
 }
 
 export function SelectField({ label, hint, value, options, favorites, disabledSet, selfValue, onChange, emptyLabel }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  // Filtrer les options selon la recherche ; garder toujours l'option déjà choisie visible.
+  const filtered = q
+    ? options.filter((r) => r.toLowerCase().includes(q) || r === value)
+    : options;
+
   return (
     <div>
       <label className="mono text-[10px] uppercase tracking-wider text-stone-500 block mb-1.5">
         {label}
         {hint && <span className="text-stone-400 ml-2">{hint}</span>}
       </label>
+      {options.length > 8 && (
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un coureur…"
+          className="w-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm mb-1.5 focus:outline-none focus:border-stone-900"
+        />
+      )}
       <select
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         className="w-full border border-stone-400 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-stone-900"
       >
         <option value="">{emptyLabel || "Choisir un coureur"}</option>
-        {options.map((r) => (
+        {filtered.map((r) => (
           <option
             key={r}
             value={r}
@@ -117,6 +134,9 @@ export function SelectField({ label, hint, value, options, favorites, disabledSe
           </option>
         ))}
       </select>
+      {q && filtered.length === 0 && (
+        <div className="mono text-[10px] text-stone-400 mt-1">Aucun coureur trouvé pour « {query} »</div>
+      )}
     </div>
   );
 }
