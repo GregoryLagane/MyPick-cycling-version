@@ -298,11 +298,16 @@ function Game({ session, profile }) {
 
   const totals = useMemo(() => {
     let season = 0, done = 0, maxPossible = 0;
-    const byType = { grand_tour: 0, monument: 0, worldtour: 0 };
+    const byType = { grand_tour: 0, monument: 0, championship: 0, worldtour: 0 };
     races.forEach((r) => {
       const s = scores[r.id];
-      if (s && (r.result || r.gcResult)) {
-        season += s.total; byType[r.type] += s.total; done++;
+      // Une course compte si elle a un résultat final OU si elle a déjà rapporté
+      // des points (ex: étapes déjà courues d'une course à étapes en cours).
+      const hasPoints = s && (r.result || r.gcResult || s.total > 0);
+      if (hasPoints) {
+        season += s.total;
+        byType[r.type] = (byType[r.type] || 0) + s.total;
+        done++;
         maxPossible += maxForRace(r);
       }
     });
@@ -310,7 +315,13 @@ function Game({ session, profile }) {
   }, [races, scores]);
 
   const board = useMemo(
-    () => leaderboard(profiles, picksByUser, races.filter((r) => r.result || r.gcResult)),
+    () => leaderboard(
+      profiles,
+      picksByUser,
+      races.filter((r) =>
+        r.result || r.gcResult || (r.stages || []).some((st) => st.result)
+      )
+    ),
     [profiles, picksByUser, races]
   );
   const myRank = board.findIndex((r) => r.profile.id === session.user.id) + 1;
@@ -665,7 +676,10 @@ function PlayersPicks({ race, profiles, picksByUser, meId }) {
    ======================================================================== */
 
 function TabPoints({ races, scores, totals, onOpenRace }) {
-  const played = races.filter((r) => r.result || r.gcResult);
+  const played = races.filter((r) => {
+    const s = scores[r.id];
+    return r.result || r.gcResult || (s && s.total > 0);
+  });
   const pct = totals.maxPossible > 0 ? Math.round((totals.season / totals.maxPossible) * 100) : 0;
 
   if (played.length === 0) {
