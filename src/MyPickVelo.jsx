@@ -482,15 +482,25 @@ function Game({ session, profile }) {
 function TabCourses({ races, myPicks, scores, now, onOpenRace, onPick, profiles, picksByUser, meId }) {
   const notFinished = races.filter((r) => !(r.result || r.gcResult));
   const finished = races.filter((r) => r.result || r.gcResult);
-  // Courses ouvertes (départ à venir) d'abord, triées par date la plus proche ;
-  // puis les verrouillées (départ passé, pas encore de résultat).
-  const open = notFinished
-    .filter((r) => new Date(r.startsAt).getTime() > now)
+
+  // Une course est ENCORE ACTIVE (donc en haut) si :
+  //  - son départ est à venir (course d'un jour ou course à étapes pas commencée), OU
+  //  - c'est une course à étapes dont au moins une étape n'a pas encore démarré.
+  function stillActive(r) {
+    if (new Date(r.startsAt).getTime() > now) return true;
+    if (r.format === "stage" && (r.stages || []).some((st) => new Date(st.startsAt).getTime() > now)) {
+      return true;
+    }
+    return false;
+  }
+
+  const active = notFinished
+    .filter(stillActive)
     .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
   const lockedPending = notFinished
-    .filter((r) => new Date(r.startsAt).getTime() <= now)
+    .filter((r) => !stillActive(r))
     .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-  const upcoming = [...open, ...lockedPending];
+  const upcoming = [...active, ...lockedPending];
 
   return (
     <div className="space-y-10">
@@ -550,7 +560,12 @@ function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick, profiles, pic
   const locked = isLocked(race.startsAt, now);
   const played = race.result || race.gcResult;
   const msLeft = new Date(race.startsAt).getTime() - now;
-  const soon = !locked && !played && msLeft > 0 && msLeft < 3 * 24 * 60 * 60 * 1000;
+  const soonStart = !locked && !played && msLeft > 0 && msLeft < 3 * 24 * 60 * 60 * 1000;
+  // Course à étapes en cours : au moins une étape n'a pas encore démarré
+  const stageOngoing = race.format === "stage" && !played &&
+    (race.stages || []).some((st) => new Date(st.startsAt).getTime() > now) &&
+    new Date(race.startsAt).getTime() <= now;
+  const soon = soonStart || stageOngoing;
 
   let subInfo = null;
   if (race.format === "stage") {
@@ -568,7 +583,7 @@ function RaceRow({ race, myPicks, scores, now, onOpenRace, onPick, profiles, pic
             <RaceBadge race={race} muted={Boolean(played)} />
             {soon && (
               <span className="mono text-[9px] uppercase tracking-wider bg-lime-400 text-stone-900 px-1.5 py-0.5 font-bold">
-                Bientôt
+                {stageOngoing ? "En cours" : "Bientôt"}
               </span>
             )}
             {race.format === "stage" && (
